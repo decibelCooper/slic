@@ -45,9 +45,6 @@ public:
         /* Create new TrackSummary. */
         TrackSummary* trackSummary = new TrackSummary(track, save);
 
-        /* Add it to the master list. */
-        TrackManager::instance()->getTrackSummaries()->push_back(trackSummary);
-
         /* Associate it to its track ID. */
         (*TrackManager::instance()->getTrackSummaryMap())[track->GetTrackID()] = trackSummary;
 

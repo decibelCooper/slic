@@ -28,7 +28,6 @@ public:
      * Class constructor.
      */
     TrackManager() : Module("TrackManager") {
-        _trackSummaries = new TrackSummaryVector;
         _trackSummaryMap = new TrackSummaryMap;
     }
 
@@ -36,19 +35,10 @@ public:
      * Class destructor.
      */
     virtual ~TrackManager() {
-        delete _trackSummaries;
         delete _trackSummaryMap;
     }
 
 public:
-
-    /**
-     * Get the current collection of TrackSummary objects.
-     * @return The current collection of TrackSummaries.
-     */
-    TrackSummaryVector* getTrackSummaries() {
-        return _trackSummaries;
-    }
 
     /**
      * Save the TrackSummary vector into a collection of MCParticles in an output LCEvent.
@@ -61,14 +51,6 @@ public:
      * Reset the state of this object by clearing data structures.
      */
     void reset() {
-        /* Clear the vector. */
-        for (TrackSummaryVector::iterator it = _trackSummaries->begin();
-                it != _trackSummaries->end();
-                it++) {
-            delete *it;
-        }
-        _trackSummaries->clear();
-
         /* Clear the map. */
         _trackSummaryMap->clear();
     }
@@ -110,7 +92,6 @@ private:
 
 private:
 
-    TrackSummaryVector* _trackSummaries;
     TrackSummaryMap* _trackSummaryMap;
 };
 

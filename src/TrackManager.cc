@@ -36,45 +36,32 @@ void TrackManager::saveTrackSummaries(const G4Event* anEvent, LCEvent* lcEvent) 
         if (it->second == 0) {
             G4Exception("", "", FatalException, "MCParticle was mapped to null G4PrimaryParticle.");
         }
-        if (it->second->GetTrackID() < 0) continue;
-        for (int j = _trackSummaries->size() - 1; j >= 0; j--) {
-            if( _trackSummaries->operator[](j)->getTrackID() == it->second->GetTrackID()  ) {
-                //std::cout << "setting MCParticle " << it->first << " on TrackSummary from primary" << std::endl;
-                _trackSummaries->operator[](j)->setMCParticle(dynamic_cast<MCParticleImpl*>(it->first));
-
-#ifdef SLIC_LOG
-                log() << LOG:: debug << "primary " << MCParticleManager::instance()->indexOf(it->second)
-                        << " had track ID " << _trackSummaries->operator[](j)->getTrackID() << LOG::done;
-#endif
-
-                break ;
-            }
-        }
+	
+	TrackSummary *primary = (*_trackSummaryMap)[it->second->GetTrackID()];
+	if (primary)
+	    primary->setMCParticle(dynamic_cast<MCParticleImpl*>(it->first));
     }
 
     G4bool writeCompleteEvent = LcioManager::instance()->getWriteCompleteEvent();
 
     // Set parents to be saved on particles that will be persisted.
-    for (G4int k = _trackSummaries->size()-1; k >= 0; k--) {
-        // Save all TrackSummary objects if full event is being written.
-        //if (writeCompleteEvent)
-        //    (*_trackSummaries)[k]->setToBeSaved();
-        // Force parents to be saved if TrackSummary will be saved.
-        if (((*_trackSummaries)[k])->getToBeSaved())
-          ((*_trackSummaries)[k])->setParentToBeSaved();
-    }
+    for (auto it = _trackSummaryMap->begin(); it != _trackSummaryMap->end(); it++)
+	if (it->second && it->second->getToBeSaved())
+		it->second->setParentToBeSaved();
 
     /* Get the MCParticle collection created by event generation. */
     LCCollectionVec* mcpVec = MCParticleManager::instance()->getMCParticleCollection();
 
     /* Save TrackSummary objects to LCIO collection. */
 #ifdef SLIC_LOG
-    log() << LOG::okay << "TrackManager processing " << _trackSummaries->size() << " TrackSummary objects." << LOG::done;
+    log() << LOG::okay << "TrackManager processing " << _trackSummaryMap->size() << " TrackSummary objects." << LOG::done;
 #endif
-    size_t l;
+
     TrackSummary* trackSummary;
-    for (l = 0; l < _trackSummaries->size(); l++) {
-        trackSummary = (*_trackSummaries)[l];
+    for (auto it = _trackSummaryMap->begin(); it != _trackSummaryMap->end(); it++) {
+	if (!(trackSummary = it->second))
+	    continue;
+
         //| writeCompleteEvent
         if (trackSummary->getToBeSaved()) {
 
