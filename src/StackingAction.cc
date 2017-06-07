@@ -5,6 +5,11 @@
 #include "G4DecayProducts.hh"
 #include "G4ios.hh"
 
+// SLIC
+#include "TrackManager.hh"
+#include "TrackSummary.hh"
+#include "UserTrackInformation.hh"
+
 namespace slic {
 
 StackingAction::StackingAction() {
@@ -17,6 +22,8 @@ G4ClassificationOfNewTrack StackingAction::ClassifyNewTrack(const G4Track* aTrac
     // FIXME: Need to determine how these are supposed to work together!
     G4ClassificationOfNewTrack classification = m_pluginManager->stackingClassifyNewTrack(aTrack);
     if(aTrack->GetTrackStatus() == fSuspend) classification = fWaiting;
+
+    return classification;
 }
 
 void StackingAction::NewStage() {
