@@ -71,6 +71,10 @@ public:
         (*_trackSummaryMap)[trackSummary->getTrackID()] = trackSummary;
     }
 
+    void removeTrackSummary(G4int trackID) {
+	_trackSummaryMap->erase(trackID);
+    }
+
     /**
      * Find a TrackSummary by track ID.
      * @param[in] trackID The track ID.

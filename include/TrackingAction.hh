@@ -7,6 +7,8 @@
 #include "G4UserTrackingAction.hh"
 #include "G4TrackingManager.hh"
 
+#include <set>
+
 namespace slic {
 
 class TrajectoryManager;

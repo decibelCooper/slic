@@ -4,6 +4,7 @@
 #include "lcdd/detectors/CurrentTrackState.hh"
 
 // SLIC
+#include "TrackManager.hh"
 #include "TrackUtil.hh"
 #include "UserTrackInformation.hh"
 
@@ -29,36 +30,28 @@ void TrackingAction::PreUserTrackingAction(const G4Track* track) {
         // Track is backscattering?
         if (trackInfo->getTrackSummary()->getBackScattering()) {
             // Update current track ID for calorimeter SDs and return.
-            CurrentTrackState::setCurrentTrackID(trackID);
+            CurrentTrackState::setCurrentTrackID(trackInfo->getTrackSummary()->getTrackID());
             return;
         }
         return;
-    }
+    } else
+	trackInfo = TrackUtil::setupUserTrackInformation(track, false);
 
     // Primary OR in tracker region and above energy threshold?
     if (isTruePrimary || (insideTrackerRegion && aboveEnergyThreshold)) {
 
         // Update track ID for calorimeter SDs.
-        CurrentTrackState::setCurrentTrackID(trackID);
+        CurrentTrackState::setCurrentTrackID(trackInfo->getTrackSummary()->getTrackID());
 
         // Turn on trajectory storage.
         fpTrackingManager->SetStoreTrajectory(true);
 
-        // Has track information?
-        if (!hasTrackInfo) {
-            // Create the track information and save it.
-            TrackUtil::setupUserTrackInformation(track, true);
-        }
+	// Save it.
+	trackInfo->getTrackSummary()->setToBeSaved();
 
     } else {
         // Inside tracker region and below energy threshold?
-        if (insideTrackerRegion && !aboveEnergyThreshold) {
-            // Has track information?
-            if (!hasTrackInfo) {
-                // Create track information but do not save it.
-                TrackUtil::setupUserTrackInformation(track, false);
-            }
-        } else {
+        if (!insideTrackerRegion) {
             // Track is outside tracking region so turn off trajectory storage.
             // These are generally tracks from calorimeter showers.
             fpTrackingManager->SetStoreTrajectory(false);
@@ -72,20 +65,25 @@ void TrackingAction::PostUserTrackingAction(const G4Track* track) {
 
     // Get the track information and summary.
     UserTrackInformation* trackInfo = TrackUtil::getUserTrackInformation(track);
-    TrackSummary* trackSummary = NULL;
-    if (trackInfo != NULL)
-        trackSummary = trackInfo->getTrackSummary();
+    TrackSummary *trackSummary = trackInfo->getTrackSummary();
 
-    // Track has secondaries?
-    if (fpTrackingManager->GimmeSecondaries()->size() > 0 && trackInfo == NULL) {
-        // Tracks with secondaries always get track information but they are not saved by default.
-        trackSummary = TrackUtil::setupUserTrackInformation(track, false)->getTrackSummary();
-    }
+    G4int nSecondaries = fpTrackingManager->GimmeSecondaries()->size();
+    if (nSecondaries == 0 /*trackSummary->getNSecondaries() == 0*/ && !trackSummary->getToBeSaved()) {
+	TrackSummary *parent = trackSummary->findParent();
+	if (parent) {
+	    parent->addAssociatedTrackID(trackSummary->getTrackID());
+	    parent->incrementUnsavedSecondaries();
 
-    // Track summary exists?
-    if (trackSummary != NULL) {
-        // Update the track summary.
-        trackSummary->update(track);
+	    TrackManager::instance()->removeTrackSummary(trackSummary->getTrackID());
+	    delete trackSummary;
+	    trackSummary = NULL;
+	} else
+	    std::cout << "No summary for " << track->GetParentID() << " in PostUserTrackingAction()" << std::endl;
+    } else {
+	trackSummary->setNSecondaries(nSecondaries);
+
+	// Update the track summary.
+	trackSummary->update(track);
     }
 
     m_pluginManager->postTracking(track);

@@ -62,39 +62,29 @@ void TrackManager::saveTrackSummaries(const G4Event* anEvent, LCEvent* lcEvent) 
 	if (!(trackSummary = it->second))
 	    continue;
 
-        //| writeCompleteEvent
-        if (trackSummary->getToBeSaved()) {
+	/* Build the MCParticle in case it hasn't been created yet. */
+	if (trackSummary->getMCParticle() == 0) {
+	    trackSummary->buildMCParticle();
+	}
 
-            /* Build the MCParticle in case it hasn't been created yet. */
-            if (trackSummary->getMCParticle() == 0) {
-                trackSummary->buildMCParticle();
-            }
 
-            /* Associate the track ID to the MCParticle for the hit maker. */
-            MCParticleManager::instance()->addMCParticleTrackID(
-                    trackSummary->getTrackID(),
-                    trackSummary->getMCParticle());
+	/* Associate the track ID to the MCParticle for the hit maker. */
+	trackSummary->associateTrackIDs();
 
-            /*
-             * Only particles created in the simulation need to be added, as the generator MCParticles
-             * associated with primaries were already.  But if a Geant4 internal generator was used
-             * such as the GPS or ParticleGun, then all particles with the save flag on should be added
-             * here, as they will all be flagged as sim particles and would not have been added yet.
-             */
-            if(trackSummary->getMCParticle()->getGeneratorStatus() == 0 || geant4Generator) {
-                if (trackSummary->getMCParticle() != NULL) {
-                    mcpVec->push_back(trackSummary->getMCParticle());
-                    // DEBUG
-                    //if (trackSummary->getParentID() <= 0)
-                    //    G4cout << "WARNING: sim particle with track ID " << trackSummary->getTrackID() << " has no parent!" << G4endl;
-                }
-            }
-        } else {
-             // If the track will not be saved then associate the information to its first persisted ancestor.
-             // This will allow association between track IDs from sensitive detector's in LCDD to their appropriate
-             // MCParticle objects in the output collection.
-            findFirstSavedAncestor(trackSummary);
-        }
+	/*
+	 * Only particles created in the simulation need to be added, as the generator MCParticles
+	 * associated with primaries were already.  But if a Geant4 internal generator was used
+	 * such as the GPS or ParticleGun, then all particles with the save flag on should be added
+	 * here, as they will all be flagged as sim particles and would not have been added yet.
+	 */
+	if(trackSummary->getMCParticle()->getGeneratorStatus() == 0 || geant4Generator) {
+	    if (trackSummary->getMCParticle() != NULL) {
+		mcpVec->push_back(trackSummary->getMCParticle());
+		// DEBUG
+		//if (trackSummary->getParentID() <= 0)
+		//    G4cout << "WARNING: sim particle with track ID " << trackSummary->getTrackID() << " has no parent!" << G4endl;
+	    }
+	}
     }
 
     /* Set flag so it is saved. */

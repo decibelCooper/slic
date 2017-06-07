@@ -41,7 +41,7 @@ void SteppingAction::UserSteppingAction(const G4Step* step) {
         trackSummary->setBackScattering();
 
         // Suspend backscattering tracks to postpone them to the end of shower development.
-        fpSteppingManager->GetTrack()->SetTrackStatus(fSuspend);
+//        fpSteppingManager->GetTrack()->SetTrackStatus(fSuspend);
 
         //G4cout << "suspended backscattering track " << fpSteppingManager->GetTrack()->GetTrackID() << G4endl;
     }

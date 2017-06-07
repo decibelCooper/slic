@@ -235,6 +235,26 @@ public:
      */
     TrackSummary* findParent() const;
 
+    void setNSecondaries(G4int nSecondaries) {
+	_nSecondaries = nSecondaries;
+    }
+
+    void incrementSecondaries() {
+	_nSecondaries++;
+    }
+
+    G4int getNSecondaries() {
+	return _nSecondaries;
+    }
+
+    void incrementUnsavedSecondaries();
+
+    void addAssociatedTrackID(G4int trackID) {
+	_associatedIDs.push_back(trackID);
+    }
+
+    void associateTrackIDs();
+
 private:
 
 // Member data
@@ -263,6 +283,10 @@ private:
     G4bool _mcParticleIsUpToDate;
 
     G4bool _hasTrackerHit;
+
+    G4int _nSecondaries;
+    G4int _nUnsavedSecondaries;
+    std::vector<G4int> _associatedIDs;
 
     static TrackManager* m_trackManager;
 };

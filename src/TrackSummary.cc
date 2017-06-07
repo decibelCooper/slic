@@ -1,6 +1,7 @@
 #include "TrackSummary.hh"
 
 // SLIC
+#include "MCParticleManager.hh"
 #include "TrackUtil.hh"
 #include "TrackManager.hh"
 
@@ -24,13 +25,15 @@ TrackManager* TrackSummary::m_trackManager = TrackManager::instance();
 
 TrackSummary::TrackSummary(const G4Track* track, G4bool toBeSaved, G4bool backScattering) :
         _parent(NULL), _toBeSaved(toBeSaved), _backScattering(backScattering), _mcparticle(NULL),
-        _hasTrackerHit(false), _mcParticleIsUpToDate(false), _trackLength(0), _hepEvtStatus(0) {
+        _hasTrackerHit(false), _mcParticleIsUpToDate(false), _trackLength(0), _hepEvtStatus(0),
+	_nSecondaries(0), _nUnsavedSecondaries(0) {
 
     /* Set information of track that is immutable. */
     _charge = track->GetDefinition()->GetPDGCharge();
     _mass = track->GetDynamicParticle()->GetMass();
     _PDG = track->GetDefinition()->GetPDGEncoding();
     _trackID = track->GetTrackID();
+    addAssociatedTrackID(_trackID);
     _parentTrackID = track->GetParentID();
 
     /* The momentum appears to be set correctly before tracking occurs so set here along with energy. */
@@ -40,6 +43,7 @@ TrackSummary::TrackSummary(const G4Track* track, G4bool toBeSaved, G4bool backSc
     /* Assign track time. */
     // G4cout << "setting track time to " << track->GetGlobalTime() << G4endl;
     _globalTime = track->GetGlobalTime();
+
 }
 
 void TrackSummary::update(const G4Track* track) {
@@ -180,6 +184,36 @@ TrackSummary* TrackSummary::findParent() const {
     }
 
     return m_trackManager->findTrackSummary(_parentTrackID);
+}
+
+void TrackSummary::incrementUnsavedSecondaries() {
+    _nUnsavedSecondaries++;
+    
+    if (_nSecondaries <= 0 || _toBeSaved)
+	return;
+
+    if (_nUnsavedSecondaries >= _nSecondaries) {
+	TrackSummary *parent = findParent();
+
+	if (parent) {
+	    for (auto it = _associatedIDs.begin(); it != _associatedIDs.end(); it++)
+		parent->addAssociatedTrackID(*it);
+
+	    parent->incrementUnsavedSecondaries();
+
+	    m_trackManager->removeTrackSummary(_trackID);
+	    delete this;
+	} else
+	    std::cout << "No summary for " << _parentTrackID << " in incrementUnsavedSecondaries()" << std::endl;
+    }
+}
+
+void TrackSummary::associateTrackIDs() {
+    for (auto it = _associatedIDs.begin(); it != _associatedIDs.end(); it++) {
+	MCParticleManager::instance()->addMCParticleTrackID(
+		*it,
+		_mcparticle);
+    }
 }
 
 void TrackSummary::buildMCParticle() {
